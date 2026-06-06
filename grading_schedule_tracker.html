@@ -1,0 +1,272 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+h2.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
+body{font-family:var(--font-sans)}
+.wrap{padding:1rem 0;display:flex;flex-direction:column;gap:1.25rem}
+.top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.top h1{font-size:17px;font-weight:500;color:var(--color-text-primary)}
+.paste-area{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1rem 1.25rem;display:flex;flex-direction:column;gap:10px}
+.paste-label{font-size:13px;color:var(--color-text-secondary);display:flex;align-items:center;gap:6px}
+textarea{width:100%;resize:vertical;min-height:100px;font-size:13px;padding:8px 10px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:var(--color-background-secondary);color:var(--color-text-primary);font-family:var(--font-mono);line-height:1.5}
+textarea:focus{outline:none;border-color:var(--color-border-primary)}
+.btn-row{display:flex;gap:8px;align-items:center}
+button{font-size:13px;padding:6px 14px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:transparent;color:var(--color-text-primary);cursor:pointer}
+button:hover{background:var(--color-background-secondary)}
+button:active{transform:scale(.98)}
+.filter-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.filter-btn{font-size:12px;padding:4px 12px;border-radius:20px;border:0.5px solid var(--color-border-secondary);background:transparent;color:var(--color-text-secondary);cursor:pointer;transition:all .15s}
+.filter-btn.active{background:var(--color-background-info);color:var(--color-text-info);border-color:var(--color-border-info)}
+.stats{display:flex;gap:10px;flex-wrap:wrap}
+.stat{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:8px 14px;display:flex;flex-direction:column;gap:2px}
+.stat-val{font-size:20px;font-weight:500;color:var(--color-text-primary)}
+.stat-lbl{font-size:11px;color:var(--color-text-secondary)}
+.stat-val.warn{color:#E24B4A}
+.timeline{display:flex;flex-direction:column;gap:6px}
+.row{display:grid;grid-template-columns:90px 1fr 100px 100px 80px;gap:12px;align-items:center;padding:10px 14px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-tertiary);background:var(--color-background-primary);font-size:13px}
+.row.past{opacity:.45}
+.row.today{border:1.5px solid var(--color-border-warning);background:var(--color-background-warning)}
+.row.soon{border-color:var(--color-border-danger)}
+.row-section{font-size:11px;font-weight:500;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.04em;padding:12px 14px 2px;display:grid;grid-template-columns:90px 1fr 100px 100px 80px;gap:12px}
+.pill{font-size:11px;padding:2px 8px;border-radius:20px;display:inline-block;white-space:nowrap}
+.pill-pre{background:#E6F1FB;color:#0C447C}
+.pill-how{background:#EEEDFE;color:#3C3489}
+.pill-other{background:#E1F5EE;color:#085041}
+.pill-quiz{background:#FAEEDA;color:#633806}
+@media(prefers-color-scheme:dark){
+.pill-pre{background:#0C447C;color:#B5D4F4}
+.pill-how{background:#3C3489;color:#CECBF6}
+.pill-other{background:#085041;color:#9FE1CB}
+.pill-quiz{background:#633806;color:#FAC775}
+}
+.date-cell{color:var(--color-text-secondary);font-size:12px;font-variant-numeric:tabular-nums}
+.name-cell{font-weight:500;color:var(--color-text-primary)}
+.days-badge{font-size:11px;text-align:right;color:var(--color-text-tertiary)}
+.days-badge.urgent{color:#E24B4A;font-weight:500}
+.days-badge.soon-c{color:#BA7517;font-weight:500}
+.days-badge.done{color:#1D9E75}
+.check-wrap{display:flex;justify-content:center}
+input[type=checkbox]{width:16px;height:16px;cursor:pointer;accent-color:#378ADD}
+.empty{color:var(--color-text-tertiary);font-size:14px;text-align:center;padding:2rem 0}
+.header-row{display:grid;grid-template-columns:90px 1fr 100px 100px 80px;gap:12px;padding:0 14px 6px;font-size:11px;color:var(--color-text-tertiary);text-transform:uppercase;letter-spacing:.04em}
+.tbl-scroll{overflow-x:auto}
+</style>
+
+<h2 class="sr-only">Grading schedule tracker — paste your schedule and see a sorted timeline with days remaining and completion checkboxes</h2>
+
+<div class="wrap">
+  <div class="top">
+    <div style="display:flex;align-items:center;gap:10px">
+      <span style="font-size:17px;font-weight:500;color:var(--color-text-primary)">Grading schedule</span>
+      <span id="quarter-label" style="font-size:13px;color:var(--color-text-secondary)"></span>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button onclick="togglePaste()" id="paste-toggle"><i class="ti ti-upload" style="font-size:14px;vertical-align:-2px;margin-right:4px" aria-hidden="true"></i>Paste schedule</button>
+      <button onclick="clearAll()" style="color:var(--color-text-secondary)">Clear</button>
+    </div>
+  </div>
+
+  <div class="paste-area" id="paste-panel">
+    <div class="paste-label"><i class="ti ti-table" style="font-size:16px" aria-hidden="true"></i>Paste your grading schedule from Google Sheets or Excel (Ctrl+V / Cmd+V after clicking below)</div>
+    <textarea id="paste-input" placeholder="Copy cells from your spreadsheet and paste here. Expects columns: Date Due, Grading Due Date, Prof Review Date, Assignment Name (optional)&#10;&#10;Works with tab-separated data from Google Sheets or Excel."></textarea>
+    <div class="btn-row">
+      <button onclick="parseSchedule()" style="font-weight:500">Parse schedule ↗</button>
+      <span id="parse-msg" style="font-size:12px;color:var(--color-text-secondary)"></span>
+    </div>
+  </div>
+
+  <div id="main" style="display:none;flex-direction:column;gap:1rem">
+    <div class="stats">
+      <div class="stat"><span class="stat-val" id="s-total">0</span><span class="stat-lbl">total items</span></div>
+      <div class="stat"><span class="stat-val" id="s-done" style="color:#1D9E75">0</span><span class="stat-lbl">graded</span></div>
+      <div class="stat"><span class="stat-val warn" id="s-urgent">0</span><span class="stat-lbl">due this week</span></div>
+      <div class="stat"><span class="stat-val" id="s-remain">0</span><span class="stat-lbl">remaining</span></div>
+    </div>
+
+    <div class="filter-row">
+      <span style="font-size:12px;color:var(--color-text-secondary)">Show:</span>
+      <button class="filter-btn active" data-f="all" onclick="setFilter('all',this)">All</button>
+      <button class="filter-btn" data-f="upcoming" onclick="setFilter('upcoming',this)">Upcoming</button>
+      <button class="filter-btn" data-f="week" onclick="setFilter('week',this)">This week</button>
+      <button class="filter-btn" data-f="done" onclick="setFilter('done',this)">Graded</button>
+    </div>
+
+    <div class="tbl-scroll">
+      <div class="header-row">
+        <span>Grading due</span>
+        <span>Assignment</span>
+        <span>Student due</span>
+        <span>Prof release</span>
+        <span style="text-align:center">Done</span>
+      </div>
+      <div class="timeline" id="timeline"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const TODAY = new Date();
+TODAY.setHours(0,0,0,0);
+let rows=[], checked=new Set(), currentFilter='all';
+let pasteVisible=true;
+
+function togglePaste(){
+  pasteVisible=!pasteVisible;
+  document.getElementById('paste-panel').style.display=pasteVisible?'flex':'none';
+}
+
+function parseDate(s){
+  if(!s)return null;
+  s=s.trim().replace(/\//g,'-');
+  const parts=s.split('-');
+  if(parts.length===3){
+    let [a,b,c]=parts;
+    if(a.length===4) return new Date(+a,+b-1,+c);
+    if(c.length===2) c='20'+c;
+    return new Date(+c,+a-1,+b);
+  }
+  const d=new Date(s);
+  return isNaN(d)?null:d;
+}
+
+function fmt(d){
+  if(!d)return '—';
+  return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+}
+
+function daysFrom(d){
+  if(!d)return null;
+  const diff=Math.round((d-TODAY)/(1000*60*60*24));
+  return diff;
+}
+
+function categoryFromName(name){
+  if(!name)return 'other';
+  const n=name.toLowerCase();
+  if(n.includes('quiz'))return 'quiz';
+  if(n.includes('how')||n.includes('ripped')||n.includes('spotlight'))return 'how';
+  if(n.includes('pre')||n.includes('pre-class'))return 'pre';
+  return 'other';
+}
+
+function pillFor(cat,section){
+  const s=(section||cat||'').toLowerCase();
+  if(s.includes('pre'))return '<span class="pill pill-pre">pre-class</span>';
+  if(s.includes('how')||s.includes('ripped'))return '<span class="pill pill-how">HOW/Ripped</span>';
+  if(s.includes('quiz'))return '<span class="pill pill-quiz">quiz</span>';
+  return '<span class="pill pill-other">other</span>';
+}
+
+function parseSchedule(){
+  const raw=document.getElementById('paste-input').value;
+  if(!raw.trim()){document.getElementById('parse-msg').textContent='Nothing to parse.';return;}
+  const lines=raw.split('\n').map(l=>l.trim()).filter(Boolean);
+  rows=[];
+  let currentSection='';
+  let parsed=0;
+  for(const line of lines){
+    const cols=line.split('\t');
+    if(cols.length<2){
+      const stripped=line.replace(/[^a-zA-Z0-9 &]/g,'').trim();
+      if(stripped&&!parseDate(cols[0])){currentSection=stripped;continue;}
+    }
+    const d0=parseDate(cols[0]);
+    if(!d0)continue;
+    const gradingDue=cols[1]?parseDate(cols[1]):null;
+    const profRelease=cols[2]?parseDate(cols[2]):null;
+    const name=cols[3]?cols[3].trim():'';
+    rows.push({studentDue:d0,gradingDue,profRelease,name,section:currentSection,id:parsed});
+    parsed++;
+  }
+  if(!rows.length){document.getElementById('parse-msg').textContent='Could not find date rows. Make sure columns are: Student Due Date, Grading Due, Prof Release, Name.';return;}
+  rows.sort((a,b)=>(a.gradingDue||a.studentDue)-(b.gradingDue||b.studentDue));
+  document.getElementById('parse-msg').textContent=`Parsed ${rows.length} items.`;
+  document.getElementById('main').style.display='flex';
+  renderTimeline();
+  togglePaste();
+}
+
+function setFilter(f,el){
+  currentFilter=f;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  renderTimeline();
+}
+
+function renderTimeline(){
+  const tl=document.getElementById('timeline');
+  const weekEnd=new Date(TODAY); weekEnd.setDate(weekEnd.getDate()+7);
+  let visible=rows.filter(r=>{
+    const d=r.gradingDue||r.studentDue;
+    if(currentFilter==='upcoming') return !checked.has(r.id)&&d>=TODAY;
+    if(currentFilter==='week') return d>=TODAY&&d<=weekEnd;
+    if(currentFilter==='done') return checked.has(r.id);
+    return true;
+  });
+
+  const urgent=rows.filter(r=>!checked.has(r.id)&&(r.gradingDue||r.studentDue)>=TODAY&&(r.gradingDue||r.studentDue)<=weekEnd).length;
+  document.getElementById('s-total').textContent=rows.length;
+  document.getElementById('s-done').textContent=checked.size;
+  document.getElementById('s-urgent').textContent=urgent;
+  document.getElementById('s-remain').textContent=rows.length-checked.size;
+
+  if(!visible.length){tl.innerHTML='<div class="empty">No items to show</div>';return;}
+
+  let html='';
+  let lastSection='';
+  for(const r of visible){
+    const d=r.gradingDue||r.studentDue;
+    const days=daysFrom(d);
+    const isPast=days<0;
+    const isToday=days===0;
+    const isSoon=days>=1&&days<=3;
+    const isDone=checked.has(r.id);
+    const cat=categoryFromName(r.name||r.section);
+    const sectionLabel=r.section||'';
+    if(sectionLabel!==lastSection){
+      if(sectionLabel) html+=`<div style="font-size:11px;font-weight:500;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.04em;padding:10px 14px 2px">${sectionLabel}</div>`;
+      lastSection=sectionLabel;
+    }
+    let rowClass='row';
+    if(isDone) rowClass+=' past';
+    else if(isToday) rowClass+=' today';
+    else if(isPast) rowClass+=' past';
+    else if(isSoon) rowClass+=' soon';
+
+    let daysStr='';
+    if(isDone) daysStr='<span class="days-badge done">graded</span>';
+    else if(isPast) daysStr=`<span class="days-badge">overdue</span>`;
+    else if(isToday) daysStr='<span class="days-badge urgent">today</span>';
+    else if(days<=3) daysStr=`<span class="days-badge soon-c">${days}d left</span>`;
+    else if(days<=7) daysStr=`<span class="days-badge soon-c">${days}d left</span>`;
+    else daysStr=`<span class="days-badge">${days}d</span>`;
+
+    const nameDisplay=r.name||pillFor(cat,r.section);
+    html+=`<div class="${rowClass}">
+      <div class="date-cell">${fmt(r.gradingDue)}</div>
+      <div class="name-cell" style="display:flex;align-items:center;gap:8px">${r.name?'<span>'+r.name+'</span>':''} ${pillFor(cat,r.section)}</div>
+      <div class="date-cell">${fmt(r.studentDue)}</div>
+      <div class="date-cell">${fmt(r.profRelease)}</div>
+      <div class="check-wrap" style="display:flex;align-items:center;justify-content:space-between;gap:6px">${daysStr}<input type="checkbox" aria-label="Mark as graded" ${isDone?'checked':''} onchange="toggle(${r.id})"></div>
+    </div>`;
+  }
+  tl.innerHTML=html;
+}
+
+function toggle(id){
+  if(checked.has(id)) checked.delete(id);
+  else checked.add(id);
+  renderTimeline();
+}
+
+function clearAll(){
+  rows=[];checked=new Set();currentFilter='all';
+  document.getElementById('timeline').innerHTML='';
+  document.getElementById('main').style.display='none';
+  document.getElementById('paste-input').value='';
+  document.getElementById('parse-msg').textContent='';
+  document.getElementById('paste-panel').style.display='flex';
+  pasteVisible=true;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.toggle('active',b.dataset.f==='all'));
+}
+</script>
