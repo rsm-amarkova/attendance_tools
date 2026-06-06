@@ -1,0 +1,186 @@
+
+<style>
+h2.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans)}
+.wrap{padding:1.25rem 0;display:flex;flex-direction:column;gap:1.25rem}
+.top-bar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.top-bar h1{font-size:17px;font-weight:500;color:var(--color-text-primary)}
+.badge{font-size:12px;padding:3px 10px;border-radius:var(--border-radius-md);background:var(--color-background-secondary);color:var(--color-text-secondary);border:0.5px solid var(--color-border-tertiary)}
+.grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.col-card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1rem}
+.col-header{font-size:12px;font-weight:500;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.col-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dot-blue{background:#378ADD}
+.dot-teal{background:#1D9E75}
+.dot-red{background:#E24B4A}
+textarea{width:100%;resize:vertical;min-height:200px;font-size:14px;padding:10px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:var(--color-background-secondary);color:var(--color-text-primary);font-family:var(--font-sans);line-height:1.6}
+textarea:focus{outline:none;border-color:var(--color-border-primary)}
+.absent-list{min-height:200px;font-size:14px;line-height:1.6;color:var(--color-text-primary)}
+.absent-name{padding:5px 0;border-bottom:0.5px solid var(--color-border-tertiary);display:flex;align-items:center;gap:8px;font-size:14px}
+.absent-name:last-child{border-bottom:none}
+.absent-hint{font-size:12px;color:var(--color-text-tertiary)}
+.empty-state{color:var(--color-text-tertiary);font-size:13px;padding-top:4px}
+.run-btn{display:flex;align-items:center;gap:6px;padding:7px 16px;font-size:14px;font-weight:500;background:var(--color-background-primary);border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);color:var(--color-text-primary);cursor:pointer;transition:background .15s}
+.run-btn:hover{background:var(--color-background-secondary)}
+.run-btn:active{transform:scale(.98)}
+.stats{display:flex;gap:10px;flex-wrap:wrap}
+.stat{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:8px 14px;display:flex;flex-direction:column;gap:2px}
+.stat-val{font-size:20px;font-weight:500;color:var(--color-text-primary)}
+.stat-lbl{font-size:11px;color:var(--color-text-secondary)}
+.fuzzy-tag{font-size:11px;padding:1px 6px;border-radius:4px;background:#E6F1FB;color:#0C447C}
+@media(prefers-color-scheme:dark){.fuzzy-tag{background:#0C447C;color:#B5D4F4}}
+.threshold-row{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--color-text-secondary)}
+.copy-btn{font-size:12px;padding:3px 10px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:transparent;color:var(--color-text-secondary);cursor:pointer}
+.copy-btn:hover{background:var(--color-background-secondary)}
+</style>
+
+<h2 class="sr-only">Attendance checker — paste present names and roster, see who is absent</h2>
+
+<div class="wrap">
+  <div class="top-bar">
+    <h1>Attendance checker</h1>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <div class="threshold-row">
+        <span>Match sensitivity</span>
+        <input type="range" min="40" max="90" value="65" id="threshold" style="width:90px">
+        <span id="thresh-val" style="min-width:32px;font-weight:500;color:var(--color-text-primary)">65%</span>
+      </div>
+      <button class="run-btn" onclick="run()">Check absences ↗</button>
+    </div>
+  </div>
+
+  <div class="stats" id="stats" style="display:none">
+    <div class="stat"><span class="stat-val" id="s-roster">0</span><span class="stat-lbl">on roster</span></div>
+    <div class="stat"><span class="stat-val" id="s-present">0</span><span class="stat-lbl">present</span></div>
+    <div class="stat"><span class="stat-val" id="s-absent" style="color:#E24B4A">0</span><span class="stat-lbl">absent</span></div>
+  </div>
+
+  <div class="grid">
+    <div class="col-card">
+      <div class="col-header"><span class="col-dot dot-blue"></span>Present (entered)</div>
+      <textarea id="present-in" placeholder="Type or paste one name per line&#10;&#10;e.g.&#10;Jon Smith&#10;Maria G&#10;Alex"></textarea>
+    </div>
+    <div class="col-card">
+      <div class="col-header"><span class="col-dot dot-teal"></span>Full roster</div>
+      <textarea id="roster-in" placeholder="Type or paste full class roster&#10;one name per line&#10;&#10;e.g.&#10;Jonathan Smith&#10;Maria Garcia&#10;Alex Johnson&#10;Jamie Lee"></textarea>
+    </div>
+    <div class="col-card">
+      <div class="col-header" style="justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:6px"><span class="col-dot dot-red"></span>Absent</div>
+        <button class="copy-btn" id="copy-btn" onclick="copyAbsent()" style="display:none">Copy</button>
+      </div>
+      <div class="absent-list" id="absent-out">
+        <span class="empty-state">Results will appear here after checking</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const threshEl=document.getElementById('threshold');
+const threshVal=document.getElementById('thresh-val');
+threshEl.oninput=()=>{threshVal.textContent=threshEl.value+'%'};
+
+function tokenize(name){
+  return name.toLowerCase().replace(/[^a-z0-9 ]/g,'').split(/\s+/).filter(Boolean);
+}
+
+function similarity(a,b){
+  if(!a||!b)return 0;
+  if(a===b)return 100;
+  const la=a.toLowerCase(),lb=b.toLowerCase();
+  if(la===lb)return 100;
+  const dist=levenshtein(la,lb);
+  const maxLen=Math.max(la.length,lb.length);
+  const charSim=(1-dist/maxLen)*100;
+  const tokA=tokenize(a),tokB=tokenize(b);
+  let tokenScore=0;
+  for(const t of tokA){
+    let best=0;
+    for(const u of tokB){
+      const d=levenshtein(t,u);
+      const s=(1-d/Math.max(t.length,u.length,1))*100;
+      if(s>best)best=s;
+    }
+    tokenScore+=best;
+  }
+  const avgTok=tokA.length?tokenScore/tokA.length:0;
+  return Math.max(charSim,avgTok);
+}
+
+function levenshtein(a,b){
+  const m=a.length,n=b.length;
+  const dp=Array.from({length:m+1},(_,i)=>i===0?[...Array(n+1).keys()]:Array(n+1).fill(0));
+  for(let i=1;i<=m;i++){
+    dp[i][0]=i;
+    for(let j=1;j<=n;j++){
+      dp[i][j]=a[i-1]===b[j-1]?dp[i-1][j-1]:1+Math.min(dp[i-1][j],dp[i][j-1],dp[i-1][j-1]);
+    }
+  }
+  return dp[m][n];
+}
+
+function parse(el){
+  return el.value.split('\n').map(s=>s.trim()).filter(Boolean);
+}
+
+let absentNames=[];
+
+function run(){
+  const presentRaw=parse(document.getElementById('present-in'));
+  const rosterRaw=parse(document.getElementById('roster-in'));
+  const thresh=parseInt(threshEl.value);
+  if(!rosterRaw.length){
+    document.getElementById('absent-out').innerHTML='<span class="empty-state">Add roster names first</span>';
+    return;
+  }
+  const matched=new Set();
+  const fuzzyMatches=new Map();
+  for(const pName of presentRaw){
+    let bestScore=0,bestRoster=null;
+    for(const rName of rosterRaw){
+      const s=similarity(pName,rName);
+      if(s>bestScore){bestScore=s;bestRoster=rName}
+    }
+    if(bestScore>=thresh&&bestRoster){
+      matched.add(bestRoster);
+      if(bestScore<98&&bestRoster.toLowerCase()!==pName.toLowerCase()){
+        fuzzyMatches.set(bestRoster,{entered:pName,score:Math.round(bestScore)});
+      }
+    }
+  }
+  absentNames=rosterRaw.filter(r=>!matched.has(r));
+  const out=document.getElementById('absent-out');
+  document.getElementById('copy-btn').style.display=absentNames.length?'':'none';
+  if(!absentNames.length){
+    out.innerHTML='<span class="empty-state" style="color:#1D9E75;font-size:14px">Everyone is present!</span>';
+  }else{
+    out.innerHTML=absentNames.map(n=>`<div class="absent-name">${n}</div>`).join('');
+  }
+  const statsEl=document.getElementById('stats');
+  statsEl.style.display='flex';
+  document.getElementById('s-roster').textContent=rosterRaw.length;
+  document.getElementById('s-present').textContent=matched.size;
+  document.getElementById('s-absent').textContent=absentNames.length;
+  if(fuzzyMatches.size){
+    let hint='<div style="margin-top:12px;padding-top:10px;border-top:0.5px solid var(--color-border-tertiary)">';
+    hint+='<div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:6px">fuzzy matches used</div>';
+    fuzzyMatches.forEach((v,k)=>{
+      hint+=`<div style="font-size:12px;color:var(--color-text-secondary);padding:2px 0">"${v.entered}" → ${k} <span class="fuzzy-tag">${v.score}%</span></div>`;
+    });
+    hint+='</div>';
+    out.innerHTML+=hint;
+  }
+}
+
+function copyAbsent(){
+  navigator.clipboard.writeText(absentNames.join('\n')).then(()=>{
+    const btn=document.getElementById('copy-btn');
+    btn.textContent='Copied!';
+    setTimeout(()=>btn.textContent='Copy',1500);
+  });
+}
+
+document.getElementById('present-in').addEventListener('keyup',e=>{if(e.key==='Enter'){}});
+</script>
