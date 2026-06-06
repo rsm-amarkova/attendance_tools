@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grading schedule</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f9f9f8;color:#1a1a1a;padding:2rem 1.5rem;max-width:860px;margin:0 auto;min-height:100vh}
+h1{font-size:20px;font-weight:500}
+.top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:1.25rem}
+.paste-area{background:#fff;border:0.5px solid rgba(0,0,0,0.12);border-radius:12px;padding:1rem 1.25rem;display:flex;flex-direction:column;gap:10px;margin-bottom:1.25rem}
+.paste-label{font-size:13px;color:#666;display:flex;align-items:center;gap:6px}
+textarea{width:100%;resize:vertical;min-height:100px;font-size:13px;padding:8px 10px;border:0.5px solid rgba(0,0,0,0.2);border-radius:8px;background:#f5f5f3;color:#1a1a1a;font-family:monospace;line-height:1.5}
+textarea:focus{outline:none;border-color:rgba(0,0,0,0.4)}
+.btn-row{display:flex;gap:8px;align-items:center}
+button{font-size:13px;padding:6px 14px;border-radius:8px;border:0.5px solid rgba(0,0,0,0.2);background:transparent;color:#1a1a1a;cursor:pointer;font-family:inherit}
+button:hover{background:#f0f0ee}
+button:active{transform:scale(.98)}
+.filter-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:1rem}
+.filter-btn{font-size:12px;padding:4px 12px;border-radius:20px;border:0.5px solid rgba(0,0,0,0.15);background:transparent;color:#666;cursor:pointer}
+.filter-btn.active{background:#dbeafe;color:#1e40af;border-color:#93c5fd}
+.stats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:1rem}
+.stat{background:#f0f0ee;border-radius:8px;padding:8px 14px;display:flex;flex-direction:column;gap:2px}
+.stat-val{font-size:20px;font-weight:500}
+.stat-lbl{font-size:11px;color:#888}
+.stat-val.warn{color:#dc2626}
+.stat-val.good{color:#16a34a}
+.header-row{display:grid;grid-template-columns:90px 1fr 100px 100px 90px;gap:12px;padding:0 14px 6px;font-size:11px;color:#999;text-transform:uppercase;letter-spacing:.04em}
+.timeline{display:flex;flex-direction:column;gap:6px}
+.section-label{font-size:11px;font-weight:500;color:#888;text-transform:uppercase;letter-spacing:.04em;padding:10px 14px 2px}
+.row{display:grid;grid-template-columns:90px 1fr 100px 100px 90px;gap:12px;align-items:center;padding:10px 14px;border-radius:8px;border:0.5px solid rgba(0,0,0,0.1);background:#fff;font-size:13px}
+.row.past{opacity:.4}
+.row.today{border:1.5px solid #f59e0b;background:#fffbeb}
+.row.soon{border-color:#fca5a5}
+.pill{font-size:11px;padding:2px 8px;border-radius:20px;display:inline-block;white-space:nowrap}
+.pill-pre{background:#dbeafe;color:#1e3a8a}
+.pill-how{background:#ede9fe;color:#4c1d95}
+.pill-other{background:#d1fae5;color:#064e3b}
+.pill-quiz{background:#fef3c7;color:#78350f}
+.date-cell{color:#888;font-size:12px;font-variant-numeric:tabular-nums}
+.name-cell{font-weight:500;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.days-badge{font-size:11px;text-align:right;color:#aaa}
+.days-badge.urgent{color:#dc2626;font-weight:500}
+.days-badge.soon-c{color:#d97706;font-weight:500}
+.days-badge.done{color:#16a34a}
+.check-wrap{display:flex;align-items:center;justify-content:flex-end;gap:8px}
+input[type=checkbox]{width:16px;height:16px;cursor:pointer;accent-color:#2563eb}
+.empty{color:#aaa;font-size:14px;text-align:center;padding:2rem 0}
+.saved-note{font-size:11px;color:#aaa;display:flex;align-items:center;gap:4px}
+@media(max-width:600px){
+  .row,.header-row{grid-template-columns:70px 1fr 80px}
+  .row>*:nth-child(3),.row>*:nth-child(4),.header-row>*:nth-child(3),.header-row>*:nth-child(4){display:none}
+}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <h1>Grading schedule</h1>
+  <div style="display:flex;gap:8px;align-items:center">
+    <span class="saved-note" id="saved-note" style="display:none"><i class="ti ti-device-floppy" style="font-size:14px"></i> Saved locally</span>
+    <button onclick="togglePaste()" id="paste-toggle"><i class="ti ti-upload" style="font-size:14px;vertical-align:-2px;margin-right:4px"></i>Paste schedule</button>
+    <button onclick="clearAll()" style="color:#888">Clear</button>
+  </div>
+</div>
+
+<div class="paste-area" id="paste-panel">
+  <div class="paste-label"><i class="ti ti-table" style="font-size:16px"></i>Paste from Google Sheets or Excel — expects columns: Student Due, Grading Due, Prof Release, Assignment Name</div>
+  <textarea id="paste-input" placeholder="Copy cells from your spreadsheet and paste here. Include section headers (e.g. 'Pre-Class Assignments:') for category labels."></textarea>
+  <div class="btn-row">
+    <button onclick="parseSchedule()" style="font-weight:500">Parse schedule</button>
+    <span id="parse-msg" style="font-size:12px;color:#888"></span>
+  </div>
+</div>
+
+<div id="main" style="display:none">
+  <div class="stats">
+    <div class="stat"><span class="stat-val" id="s-total">0</span><span class="stat-lbl">total items</span></div>
+    <div class="stat"><span class="stat-val good" id="s-done">0</span><span class="stat-lbl">graded</span></div>
+    <div class="stat"><span class="stat-val warn" id="s-urgent">0</span><span class="stat-lbl">due this week</span></div>
+    <div class="stat"><span class="stat-val" id="s-remain">0</span><span class="stat-lbl">remaining</span></div>
+  </div>
+
+  <div class="filter-row">
+    <span style="font-size:12px;color:#888">Show:</span>
+    <button class="filter-btn active" data-f="all" onclick="setFilter('all',this)">All</button>
+    <button class="filter-btn" data-f="upcoming" onclick="setFilter('upcoming',this)">Upcoming</button>
+    <button class="filter-btn" data-f="week" onclick="setFilter('week',this)">This week</button>
+    <button class="filter-btn" data-f="done" onclick="setFilter('done',this)">Graded</button>
+  </div>
+
+  <div class="header-row">
+    <span>Grading due</span>
+    <span>Assignment</span>
+    <span>Student due</span>
+    <span>Prof release</span>
+    <span style="text-align:right">Done</span>
+  </div>
+  <div class="timeline" id="timeline"></div>
+</div>
+
+<script>
+const TODAY=new Date();TODAY.setHours(0,0,0,0);
+const LS_ROWS='grading_rows';
+const LS_CHECKED='grading_checked';
+let rows=[],checked=new Set(),currentFilter='all',pasteVisible=true;
+
+function save(){
+  try{
+    localStorage.setItem(LS_ROWS,JSON.stringify(rows));
+    localStorage.setItem(LS_CHECKED,JSON.stringify([...checked]));
+    document.getElementById('saved-note').style.display='flex';
+  }catch(e){}
+}
+
+function load(){
+  try{
+    const r=localStorage.getItem(LS_ROWS);
+    const c=localStorage.getItem(LS_CHECKED);
+    if(r){rows=JSON.parse(r);rows.forEach(row=>{if(row.studentDue)row.studentDue=new Date(row.studentDue);if(row.gradingDue)row.gradingDue=new Date(row.gradingDue);if(row.profRelease)row.profRelease=new Date(row.profRelease);});}
+    if(c){checked=new Set(JSON.parse(c));}
+    if(rows.length){document.getElementById('main').style.display='block';document.getElementById('paste-panel').style.display='none';pasteVisible=false;document.getElementById('saved-note').style.display='flex';renderTimeline();}
+  }catch(e){}
+}
+
+function togglePaste(){
+  pasteVisible=!pasteVisible;
+  document.getElementById('paste-panel').style.display=pasteVisible?'flex':'none';
+}
+
+function parseDate(s){
+  if(!s)return null;
+  s=s.trim().replace(/\//g,'-');
+  const parts=s.split('-');
+  if(parts.length===3){
+    let[a,b,c]=parts;
+    if(a.length===4)return new Date(+a,+b-1,+c);
+    if(c.length===2)c='20'+c;
+    return new Date(+c,+a-1,+b);
+  }
+  const d=new Date(s);return isNaN(d)?null:d;
+}
+
+function fmt(d){if(!d)return '—';return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});}
+
+function daysFrom(d){if(!d)return null;return Math.round((d-TODAY)/(1000*60*60*24));}
+
+function pillFor(cat,section){
+  const s=((section||'')+(cat||'')).toLowerCase();
+  if(s.includes('pre'))return '<span class="pill pill-pre">pre-class</span>';
+  if(s.includes('how')||s.includes('ripped')||s.includes('spotlight'))return '<span class="pill pill-how">HOW / Ripped</span>';
+  if(s.includes('quiz'))return '<span class="pill pill-quiz">quiz</span>';
+  return '<span class="pill pill-other">other</span>';
+}
+
+function parseSchedule(){
+  const raw=document.getElementById('paste-input').value;
+  if(!raw.trim()){document.getElementById('parse-msg').textContent='Nothing to parse.';return;}
+  const lines=raw.split('\n').map(l=>l.trim()).filter(Boolean);
+  rows=[];checked=new Set();
+  let currentSection='',parsed=0;
+  for(const line of lines){
+    const cols=line.split('\t');
+    const d0=parseDate(cols[0]);
+    if(!d0){const stripped=line.replace(/[^a-zA-Z0-9 &/#]/g,'').trim();if(stripped)currentSection=stripped;continue;}
+    const gradingDue=cols[1]?parseDate(cols[1]):null;
+    const profRelease=cols[2]?parseDate(cols[2]):null;
+    const name=cols[3]?cols[3].trim():'';
+    rows.push({studentDue:d0,gradingDue,profRelease,name,section:currentSection,id:parsed});
+    parsed++;
+  }
+  if(!rows.length){document.getElementById('parse-msg').textContent='No date rows found. Check column order: Student Due, Grading Due, Prof Release, Name.';return;}
+  rows.sort((a,b)=>(a.gradingDue||a.studentDue)-(b.gradingDue||b.studentDue));
+  document.getElementById('parse-msg').textContent=`Parsed ${rows.length} items.`;
+  document.getElementById('main').style.display='block';
+  save();renderTimeline();
+  document.getElementById('paste-panel').style.display='none';pasteVisible=false;
+}
+
+function setFilter(f,el){
+  currentFilter=f;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  renderTimeline();
+}
+
+function renderTimeline(){
+  const tl=document.getElementById('timeline');
+  const weekEnd=new Date(TODAY);weekEnd.setDate(weekEnd.getDate()+7);
+  let visible=rows.filter(r=>{
+    const d=r.gradingDue||r.studentDue;
+    if(currentFilter==='upcoming')return !checked.has(r.id)&&d>=TODAY;
+    if(currentFilter==='week')return d>=TODAY&&d<=weekEnd;
+    if(currentFilter==='done')return checked.has(r.id);
+    return true;
+  });
+  const urgent=rows.filter(r=>!checked.has(r.id)&&(r.gradingDue||r.studentDue)>=TODAY&&(r.gradingDue||r.studentDue)<=weekEnd).length;
+  document.getElementById('s-total').textContent=rows.length;
+  document.getElementById('s-done').textContent=checked.size;
+  document.getElementById('s-urgent').textContent=urgent;
+  document.getElementById('s-remain').textContent=rows.length-checked.size;
+  if(!visible.length){tl.innerHTML='<div class="empty">No items to show</div>';return;}
+  let html='',lastSection='';
+  for(const r of visible){
+    const d=r.gradingDue||r.studentDue;
+    const days=daysFrom(d);
+    const isPast=days<0,isToday=days===0,isSoon=days>=1&&days<=3,isDone=checked.has(r.id);
+    if(r.section!==lastSection){if(r.section)html+=`<div class="section-label">${r.section}</div>`;lastSection=r.section;}
+    let rowClass='row';
+    if(isDone||isPast)rowClass+=' past';
+    else if(isToday)rowClass+=' today';
+    else if(isSoon)rowClass+=' soon';
+    let daysStr='';
+    if(isDone)daysStr='<span class="days-badge done">graded</span>';
+    else if(isPast)daysStr='<span class="days-badge">overdue</span>';
+    else if(isToday)daysStr='<span class="days-badge urgent">today</span>';
+    else if(days<=7)daysStr=`<span class="days-badge soon-c">${days}d left</span>`;
+    else daysStr=`<span class="days-badge">${days}d</span>`;
+    html+=`<div class="${rowClass}">
+      <div class="date-cell">${fmt(r.gradingDue)}</div>
+      <div class="name-cell">${r.name?'<span>'+r.name+'</span>':''} ${pillFor('',r.section)}</div>
+      <div class="date-cell">${fmt(r.studentDue)}</div>
+      <div class="date-cell">${fmt(r.profRelease)}</div>
+      <div class="check-wrap">${daysStr}<input type="checkbox" aria-label="Mark as graded" ${isDone?'checked':''} onchange="toggle(${r.id})"></div>
+    </div>`;
+  }
+  tl.innerHTML=html;
+}
+
+function toggle(id){
+  if(checked.has(id))checked.delete(id);else checked.add(id);
+  save();renderTimeline();
+}
+
+function clearAll(){
+  rows=[];checked=new Set();currentFilter='all';
+  localStorage.removeItem(LS_ROWS);localStorage.removeItem(LS_CHECKED);
+  document.getElementById('timeline').innerHTML='';
+  document.getElementById('main').style.display='none';
+  document.getElementById('paste-input').value='';
+  document.getElementById('parse-msg').textContent='';
+  document.getElementById('paste-panel').style.display='flex';pasteVisible=true;
+  document.getElementById('saved-note').style.display='none';
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.toggle('active',b.dataset.f==='all'));
+}
+
+load();
+</script>
+</body>
+</html>
